@@ -1,4 +1,4 @@
 DOMQuery
 ========
 
- DOMQuery is a PHP library that allows to easily traveling and modify the DOM
+ DOMQuery is a PHP library that allows to easily traverse and modify the DOM

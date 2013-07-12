@@ -1,0 +1,20 @@
+{
+    "name":         "artack/dom-manipulation",
+    "type":         "library",
+    "description":  "An DOM manipulation library",
+    "keywords":     ["dom", "manipulation"],
+    "authors":      [
+        {
+        "name":     "David Maletta",
+        "email":    "david.maletta@artack.ch"
+        }
+    ],
+    "require":      {
+        "php":  ">=5.3.6",
+        "symfony/css-selector": "*"
+    },
+    "autoload":     {
+        "psr-0": { "Artack\\DOMQuery\\": "src/" }
+    },
+    "minimum-stability": "dev"
+}
