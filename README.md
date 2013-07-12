@@ -26,7 +26,7 @@ Usage
 -------
 ### Tree Traversal
 ``` php
-$q = DomQuery:create('
+$q = DOMQuery:create('
     <div>
         <h1>Title</h1>
         <ul>
@@ -63,24 +63,24 @@ $q->find('li')->getParent()->getName()
 ``` php
 
 //output: <div><h1>Title</h1><span>Text</span></div>
-DomQuery:create('<div><h1>Title</h1></div>')
+DOMQuery:create('<div><h1>Title</h1></div>')
     ->append('<span>Text</span>')
 ->getHtml()
 
 //output: <div><span>Text</span><h1>Title</h1></div>
-DomQuery:create('<div><h1>Title</h1></div>')
+DOMQuery:create('<div><h1>Title</h1></div>')
     ->prepend('<span>Text</span>')
 ->getHtml()
 
 //output: <div><h2>Title H2</h2></div>
-DomQuery:create('<div><h1>Title</h1></div>')
+DOMQuery:create('<div><h1>Title</h1></div>')
     ->find('h1')
         ->replace('<h2>Title H2</h2>')
         ->getParent()
 ->getHtml()
 
 //output: <div><h2>New Title</h2></div>
-DomQuery:create('<div><h1>Title</h1></div>')
+DOMQuery:create('<div><h1>Title</h1></div>')
     ->find('h1')
         ->replaceInner('New Title')
         ->getParent()
@@ -91,7 +91,7 @@ DomQuery:create('<div><h1>Title</h1></div>')
 ``` php
 
 //output: <img src="image.jpg" style="width:12px;" class="image">
-DomQuery:create('<img>')
+DOMQuery:create('<img>')
     ->setAttribute('src', 'image.jpg')
     ->setStyle('width', '12px')
     ->addClass('image')
@@ -101,8 +101,8 @@ DomQuery:create('<img>')
 ### HTML Output
 ``` php
 //output: <h1>Title</h1>
-DomQuery:create('<h1>Title</h1>')->getHtml()
+DOMQuery:create('<h1>Title</h1>')->getHtml()
 
 //output: Title
-DomQuery:create('<h1>Title</h1>')->getInnerHtml()
+DOMQuery:create('<h1>Title</h1>')->getInnerHtml()
 ```
