@@ -1,8 +1,8 @@
 {
-    "name":         "artack/dom-manipulation",
+    "name":         "artack/dom-query",
     "type":         "library",
-    "description":  "An DOM manipulation library",
-    "keywords":     ["dom", "manipulation"],
+    "description":  "DOMQuery is a PHP library that allows to easily traverse and modify the DOM",
+    "keywords":     ["dom", "modify", "traverse"],
     "authors":      [
         {
         "name":     "David Maletta",
