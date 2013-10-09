@@ -21,7 +21,7 @@ class DOMQuery implements \IteratorAggregate, \Countable
     private $nodes;
 
     /**
-     * Create nodes by given DOMQuery instance, DOMNodeList instance, DOMNode instance, html string, or null
+     * Create DomQuery by given DOMQuery instance, DOMNodeList instance, DOMNode instance, html string, or null
      *
      * @param null|string|\DOMNodeList|\DOMNode|DOMQuery $content
      * @return self
@@ -30,7 +30,158 @@ class DOMQuery implements \IteratorAggregate, \Countable
      */
     public static function create($content = null)
     {
-        return new self(self::createNodes($content));
+        // null
+        if(null === $content) {
+            return new self();
+        }
+
+        // DOMQuery instance
+        if($content instanceof DOMQuery) {
+            return self::createFromSelf($content);
+        }
+
+        // DOMNode instance
+        if($content instanceof \DOMNode) {
+            return self::createFromNode($content);
+        }
+
+        // DOMNodeList instance
+        if($content instanceof \DOMNodeList) {
+            return self::createFromNodeList($content);
+        }
+
+        // html string
+        if(is_string($content)) {
+            return self::createFromString($content);
+        }
+
+        throw new \InvalidArgumentException(sprintf('Expecting a DOMQuery instance, DOMNodeList instance,
+        DOMNode instance, html string, or null, but got "%s".',
+            is_object($content) ? get_class($content) : gettype($content)));
+    }
+
+    /**
+     * Create DomQuery by given DOMQuery instance
+     *
+     * @return self
+     * @param DOMQuery $self
+     * @return DOMQuery
+     */
+    public static function createFromSelf(DOMQuery $self)
+    {
+        return new self($self->nodes);
+    }
+
+    /**
+     * Create DomQuery by given DOMNodeList instance
+     *
+     * @param \DOMNodeList $nodeList
+     * @return DOMQuery
+     */
+    public static function createFromNodeList(\DOMNodeList $nodeList)
+    {
+        $nodes = array();
+        foreach($nodeList as $node) {
+            if($node) {
+                $nodes[] = $node;
+            }
+        }
+
+        return new self($nodes);
+    }
+
+    /**
+     * Create DomQuery by given DOMNode instance
+     *
+     * @param \DOMNode $node
+     * @return DOMQuery
+     */
+    public static function createFromNode(\DOMNode $node)
+    {
+        return new self(array($node));
+    }
+
+    /**
+     * Create DomQuery by given string
+     *
+     * @param $string
+     * @param null|string $baseUrl
+     * @param null|string $charset
+     * @return DOMQuery
+     */
+    public static function createFromString($string, $baseUrl = null, $charset = null)
+    {
+        $tag     = null;
+
+        if(preg_match('/<(!DOCTYPE|html|head|body)[^>]*>/siU', trim($string), $match)) {
+            $tag = strtolower($match[1]);
+
+            if (preg_match('/\<meta[^\>]+charset *= *["\']?([a-zA-Z\-0-9]+)/i', $string, $matches)) {
+                $charset = $matches[1];
+            }
+
+            if (preg_match('/\<base[^\>]+href *= *["\']?([^"\'>]+)["\']?/i', $string, $matches)) {
+                $baseUrl = $matches[1];
+            }
+        } else {
+            if(null === $charset) {
+                $charset = 'UTF-8';
+            }
+
+            $string = '<!DOCTYPE html>
+                        <html>
+                            <head><meta http-equiv="content-type" content="text/html; charset='.$charset.'"></head>
+                            <body>'.$string.'</body>
+                        </html>';
+        }
+
+        if (null !== $charset && function_exists('mb_convert_encoding') && in_array(strtolower($charset), array_map('strtolower', mb_list_encodings()))) {
+            $string = mb_convert_encoding($string, 'HTML-ENTITIES', $charset);
+        }
+
+        $current = libxml_use_internal_errors(true);
+        $disableEntities = libxml_disable_entity_loader(true);
+
+        $dom = new \DOMDocument('1.0', $charset);
+        $dom->validateOnParse = true;
+        @$dom->loadHTML($string);
+
+        libxml_use_internal_errors($current);
+        libxml_disable_entity_loader($disableEntities);
+
+        $nodes = array();
+
+        if(null === $tag) {
+            foreach($dom->getElementsByTagName('body')->item(0)->childNodes as $node) {
+                $nodes[] = $node;
+            }
+        } elseif($tag === '!doctype') {
+            $nodes[] = $dom;
+        } else{
+            $node = $dom->getElementsByTagName($tag)->item(0);
+
+            if($node) {
+                $nodes[] = $node;
+            }
+        }
+
+        $domQuery = new self($nodes);
+
+        if(null !== $baseUrl){
+            foreach($domQuery->find('frame, iframe, img, input, script') as $el) {
+                if($el->getAttribute('src')) {
+                    $el->setAttribute('src', Url::combine($baseUrl, $el->getAttribute('src')));
+                }
+            }
+            foreach($domQuery->find('a, area') as $el) {
+                $el->setAttribute('href', Url::combine($baseUrl, $el->getAttribute('href')));
+            }
+            foreach($domQuery->find('form') as $el) {
+                $el->setAttribute('action', Url::combine($baseUrl, $el->getAttribute('action')));
+            }
+        }
+
+        return $domQuery;
     }
 
     /**
@@ -774,80 +925,7 @@ class DOMQuery implements \IteratorAggregate, \Countable
      */
     private static function createNodes($content = null)
     {
-        // null
-        if(null === $content) {
-            return array();
-        }
-
-        // DOMQuery instance
-        if($content instanceof DOMQuery) {
-            return $content->nodes;
-        }
-
-        // DOMNode instance
-        if($content instanceof \DOMNode) {
-            return array($content);
-        }
-
-        // DOMNodeList instance
-        if($content instanceof \DOMNodeList) {
-            $nodes = array();
-            foreach($content as $node) {
-                if($node) {
-                    $nodes[] = $node;
-                }
-            }
-            return $nodes;
-        }
-
-        // html string
-        if(is_string($content)) {
-            $tag   = null;
-
-            if(preg_match('/<(!DOCTYPE|html|head|body[^>]*)>/siU', trim($content), $match)) {
-                $tag = strtolower($match[1]);
-            }
-
-            if(null === $tag) {
-                $content = '<!DOCTYPE html>
-                        <html>
-                            <head><meta http-equiv="content-type" content="text/html; charset=UTF-8"></head>
-                            <body>'.$content.'</body>
-                        </html>';
-            }
-
-            $current = libxml_use_internal_errors(true);
-            $disableEntities = libxml_disable_entity_loader(true);
-
-            $dom = new \DOMDocument('1.0', 'UTF-8');
-            $dom->validateOnParse = true;
-            @$dom->loadHTML($content);
-
-            libxml_use_internal_errors($current);
-            libxml_disable_entity_loader($disableEntities);
-
-            $nodes = array();
-
-            if(null === $tag) {
-                foreach($dom->getElementsByTagName('body')->item(0)->childNodes as $node) {
-                    $nodes[] = $node;
-                }
-            } elseif($tag === '!doctype') {
-                $nodes[] = $dom;
-            } else{
-                $node = $dom->getElementsByTagName($tag)->item(0);
-
-                if($node) {
-                    $nodes[] = $node;
-                }
-            }
-
-            return $nodes;
-        }
-
-        throw new \InvalidArgumentException(sprintf('Expecting a DOMQuery instance, DOMNodeList instance,
-        DOMNode instance, html string, or null, but got "%s".',
-            is_object($content) ? get_class($content) : gettype($content)));
+        return self::create($content)->nodes;
     }
 
     /**
@@ -1121,5 +1199,69 @@ class StyleAttribute
                 $this->node->removeAttribute('style');
             }
         }
+    }
+}
+
+/**
+ * Class URL
+ * @package Artack\DOMQuery
+ *
+ * @internal
+ */
+class Url
+{
+    /**
+     * combine base url with given url
+     *
+     * @param $baseUrl
+     * @param $url
+     * @return string
+     * @throws \InvalidArgumentException
+     */
+    public static function combine($baseUrl, $url)
+    {
+        $baseUrl = trim($baseUrl);
+        $url     = trim($url);
+
+        if (!in_array(substr($baseUrl, 0, 4), array('http', 'file'))) {
+            throw new \InvalidArgumentException(sprintf('Current URI must be an absolute URL ("%s").', $baseUrl));
+        }
+
+        // absolute URL?
+        if (0 === strpos($url, 'http')) {
+            return $url;
+        }
+
+        // empty URI
+        if (!$url) {
+            return $baseUrl;
+        }
+
+        // only an anchor
+        if ('#' ===  $url[0]) {
+            if (false !== $pos = strpos($baseUrl, '#')) {
+                $baseUrl = substr($baseUrl, 0, $pos);
+            }
+
+            return $baseUrl.$url;
+        }
+
+        // only a query string
+        if ('?' === $url[0]) {
+            // remove the query string from the current url
+            if (false !== $pos = strpos($baseUrl, '?')) {
+                $baseUrl = substr($baseUrl, 0, $pos);
+            }
+
+            return $baseUrl.$url;
+        }
+
+        // absolute path
+        if ('/' === $url[0]) {
+            return preg_replace('#^(.*?//[^/]+)(?:\/.*)?$#', '$1', $baseUrl).$url;
+        }
+
+        // relative path
+        return substr($baseUrl, 0, strrpos($baseUrl, '/') + 1).$url;
     }
 }
