@@ -113,8 +113,8 @@ class DOMQuery implements \IteratorAggregate, \Countable
     {
         $tag     = null;
 
-        if(preg_match('/<(!DOCTYPE|html|head|body)[^>]*>/siU', trim($string), $match)) {
-            $tag = strtolower($match[1]);
+        if(preg_match('/<(!DOCTYPE|html[ >]|head[ >]|body[ >])/siU', trim($string), $match)) {
+            $tag = strtolower(trim($match[1]));
 
             if (preg_match('/\<meta[^\>]+charset *= *["\']?([a-zA-Z\-0-9]+)/i', $string, $matches)) {
                 $charset = $matches[1];
@@ -124,15 +124,15 @@ class DOMQuery implements \IteratorAggregate, \Countable
                 $baseUrl = $matches[1];
             }
         } else {
-            if(null === $charset) {
-                $charset = 'UTF-8';
-            }
-
             $string = '<!DOCTYPE html>
                         <html>
                             <head><meta http-equiv="content-type" content="text/html; charset='.$charset.'"></head>
                             <body>'.$string.'</body>
                         </html>';
+        }
+
+        if(null === $charset) {
+            $charset = 'UTF-8';
         }
 
         if (null !== $charset && function_exists('mb_convert_encoding') && in_array(strtolower($charset), array_map('strtolower', mb_list_encodings()))) {
@@ -165,15 +165,22 @@ class DOMQuery implements \IteratorAggregate, \Countable
             }
         }
 
+
+
         $domQuery = new self($nodes);
 
+        if(count($domQuery->nodes)) {
+            $domQuery->loadDOMDocument(reset($domQuery->nodes))->formatOutput = true;
+        }
+
         if(null !== $baseUrl){
+
             foreach($domQuery->find('frame, iframe, img, input, script') as $el) {
                 if($el->getAttribute('src')) {
                     $el->setAttribute('src', Url::combine($baseUrl, $el->getAttribute('src')));
                 }
             }
-            foreach($domQuery->find('a, area') as $el) {
+            foreach($domQuery->find('a, area, link') as $el) {
                 $el->setAttribute('href', Url::combine($baseUrl, $el->getAttribute('href')));
             }
             foreach($domQuery->find('form') as $el) {
@@ -503,8 +510,8 @@ class DOMQuery implements \IteratorAggregate, \Countable
                 $this->nodes[] = $beforeNode;
 
                 foreach($insertNodes as $insertNode) {
-                   $this->nodes[] = $insertNode = $this->loadDOMDocument($node)->importNode($insertNode, true);
-                   $beforeNode->parentNode->insertBefore($insertNode, $beforeNode);
+                    $this->nodes[] = $insertNode = $this->loadDOMDocument($node)->importNode($insertNode, true);
+                    $beforeNode->parentNode->insertBefore($insertNode, $beforeNode);
                 }
             } else {
                 $node->parentNode->removeChild($node);
@@ -824,6 +831,14 @@ class DOMQuery implements \IteratorAggregate, \Countable
         }
 
         return false;
+    }
+
+    /**
+     * @return \DOMNode[]
+     */
+    public function getNodes()
+    {
+        return $this->nodes;
     }
 
     /**
@@ -1173,8 +1188,8 @@ class StyleAttribute
         foreach(explode(";", $content) as $style) {
             $data = explode(':', $style);
 
-            if(count($data) === 2 && trim($data[0]) && $data[1]) {
-                $this->styles[trim($data[0])] = $data[1];
+            if(count($data) === 2 && trim($data[0]) && trim($data[1])) {
+                $this->styles[trim($data[0])] = trim($data[1]);
             }
         }
 
@@ -1225,6 +1240,11 @@ class Url
 
         if (!in_array(substr($baseUrl, 0, 4), array('http', 'file'))) {
             throw new \InvalidArgumentException(sprintf('Current URI must be an absolute URL ("%s").', $baseUrl));
+        }
+
+        //email
+        if (0 === strpos($url, 'mailto:')) {
+            return $url;
         }
 
         // absolute URL?
