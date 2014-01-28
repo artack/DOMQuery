@@ -115,6 +115,7 @@ class DOMQuery implements \IteratorAggregate, \Countable
 
         if(preg_match('/<(!DOCTYPE|html[ >]|head[ >]|body[ >])/siU', trim($string), $match)) {
             $tag = strtolower(trim($match[1]));
+            $tag = str_replace(array('>',' '), '', $tag);
 
             if (preg_match('/\<meta[^\>]+charset *= *["\']?([a-zA-Z\-0-9]+)/i', $string, $matches)) {
                 $charset = $matches[1];
