@@ -140,6 +140,8 @@ class DOMQuery implements \IteratorAggregate, \Countable
             $string = mb_convert_encoding($string, 'HTML-ENTITIES', $charset);
         }
 
+        $string = str_replace('&nbsp;', '[nbsp]', $string);
+
         $current = libxml_use_internal_errors(true);
         $disableEntities = libxml_disable_entity_loader(true);
 
@@ -442,7 +444,8 @@ class DOMQuery implements \IteratorAggregate, \Countable
     public function getHtml()
     {
         foreach($this->nodes as $node) {
-            return trim($this->loadDOMDocument($node)->saveHtml($node));
+            $content = $this->loadDOMDocument($node)->saveHtml($node);
+            return trim(str_replace('[nbsp]', '&nbsp;', $content));
         }
 
         return '';
@@ -462,7 +465,7 @@ class DOMQuery implements \IteratorAggregate, \Countable
                 $content .= $this->loadDOMDocument($childNode)->saveHtml($childNode);
             }
 
-            return trim($content);
+            return trim(str_replace('[nbsp]','&nbsp;', $content));
         }
 
         return '';
