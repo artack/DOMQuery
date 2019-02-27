@@ -2,7 +2,7 @@
 
 namespace Artack\DOMQuery;
 
-use Symfony\Component\CssSelector\CssSelector;
+use Symfony\Component\CssSelector\CssSelectorConverter;
 
 /**
  * Class DOMQuery
@@ -205,7 +205,7 @@ class DOMQuery implements \IteratorAggregate, \Countable
      */
     public function find($selector)
     {
-        $expression = CssSelector::toXPath($selector);
+        $expression = (new CssSelectorConverter())->toXPath($selector);
         $nodes      = array();
 
         foreach($this->nodes as $node) {
@@ -331,7 +331,7 @@ class DOMQuery implements \IteratorAggregate, \Countable
      */
     public function filter($selector)
     {
-        $expression = CssSelector::toXPath($selector);
+        $expression = (new CssSelectorConverter())->toXPath($selector);
         $nodes      = array();
 
         foreach($this->nodes as $node) {
@@ -361,7 +361,7 @@ class DOMQuery implements \IteratorAggregate, \Countable
      */
     public function filterNot($selector)
     {
-        $expression = CssSelector::toXPath($selector);
+        $expression = (new CssSelectorConverter())->toXPath($selector);
         $nodes      = array();
 
         foreach($this->nodes as $node) {
